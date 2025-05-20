@@ -87,4 +87,3 @@ def train_baseline_regression_model(X, y):
         print(f"Final Test Loss: {test_loss:.4f}")
     
     return model, test_predictions
-    
