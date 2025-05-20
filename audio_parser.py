@@ -31,7 +31,6 @@ def get_inputs_from_features_directory(features_directory):
     for filename in os.listdir(features_directory):
         speaker_id = filename[:7]
         feature_sample = pd.read_csv(os.path.join(features_directory, filename))
-        print(filename)
         if speaker_id not in inputs_dict:
             inputs_dict[speaker_id] = [feature_sample]
         else:
