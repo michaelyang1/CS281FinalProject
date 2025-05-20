@@ -1,8 +1,9 @@
 import audiofile
 import opensmile
 import os
+import pandas as pd
 
-def extract_audio_features_from_directory(recordings_directory, save_to_file=False):
+def extract_audio_features_from_recordings_directory(recordings_directory, save_to_file=False):
     smile = opensmile.Smile(
         feature_set=opensmile.FeatureSet.GeMAPS,
         feature_level=opensmile.FeatureLevel.Functionals,
@@ -24,3 +25,18 @@ def extract_audio_features_from_directory(recordings_directory, save_to_file=Fal
                 features_filename = f"{features_directory_prefix}{recording_filename[:-3]}csv"
                 features.to_csv(features_filename)
     return features_list
+
+def get_inputs_from_features_directory(features_directory):
+    inputs = []
+    for filename in os.listdir(features_directory):
+        feature_sample = pd.read_csv(os.path.join(features_directory, filename))
+        inputs.append(feature_sample)
+        print(filename)
+    return inputs
+
+def get_targets_from_targets_directory(filename):
+    targets = pd.read_csv(filename)
+    return targets
+
+def match_features_to_targets(features, targets):
+    pass
