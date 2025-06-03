@@ -8,25 +8,32 @@ from sklearn.model_selection import train_test_split
 
 def split_train_test(X, y, train_ratio=0.8):
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_ratio, random_state=42)
+    gender_train = y_train[['Gender']]
+    gender_test = y_test[['Gender']]
+    y_train = y_train.drop(columns=['Gender'])
+    y_test = y_test.drop(columns=['Gender'])
     
-    # convert to torch tensors
-    X_train = torch.tensor(X_train, dtype=torch.float32)
-    y_train = torch.tensor(y_train, dtype=torch.float32)
-    X_test = torch.tensor(X_test, dtype=torch.float32)
-    y_test = torch.tensor(y_test, dtype=torch.float32)
+    # convert to torch tensors using .values for pandas DataFrames
+    X_train = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train = torch.tensor(y_train.values, dtype=torch.float32)
+    X_test = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test = torch.tensor(y_test.values, dtype=torch.float32)
+    gender_train = torch.tensor(gender_train.values, dtype=torch.float32)
+    gender_test = torch.tensor(gender_test.values, dtype=torch.float32)
+    print(X_train.shape, y_train.shape, gender_train.shape)
     
     # create dataloaders for training and testing
-    train_dataset = TensorDataset(X_train, y_train)
+    train_dataset = TensorDataset(X_train, y_train, gender_train)
     test_dataset = TensorDataset(X_test, y_test)
     
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     
-    return train_loader, test_loader, X_train, y_train, X_test, y_test
+    return train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test
 
-def train_regression_model(X, y):
+def train_regression_model(X, y, eo=False):
     # hyperparameters
-    train_loader, test_loader, X_train, y_train, X_test, y_test = split_train_test(X, y)
+    train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test = split_train_test(X, y)
     
     # create model with appropriate input and output sizes
     model = nn.Sequential(
@@ -52,10 +59,24 @@ def train_regression_model(X, y):
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
-        for batch_x, batch_y in train_loader:
+        for batch_x, batch_y, batch_gender in train_loader:
             # forward pass
             outputs = model(batch_x)
             loss = criterion(outputs, batch_y)
+            
+            lambda_fair = 1.0
+            if eo:
+                # fairness penalty: group-wise mean absolute error
+                male_mask = (batch_gender == 0).squeeze()
+                female_mask = (batch_gender == 1).squeeze()
+                
+                male_error = torch.abs(outputs[male_mask] - batch_y[male_mask])
+                female_error = torch.abs(outputs[female_mask] - batch_y[female_mask])
+                
+                # prevent division by zero
+                if male_error.numel() > 0 and female_error.numel() > 0:
+                    group_gap = torch.abs(male_error.mean() - female_error.mean())
+                    loss += lambda_fair * group_gap
             
             # backward pass and optimize
             optimizer.zero_grad()

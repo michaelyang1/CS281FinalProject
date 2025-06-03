@@ -17,4 +17,4 @@ if __name__ == "__main__":
     print(type(X), type(y))
     print(X.shape, y.shape)
 
-    # models.train_baseline_regression_model(x, y)
+    models.train_regression_model(X, y)
