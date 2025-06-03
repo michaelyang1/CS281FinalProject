@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optimize
 from torch.utils.data import TensorDataset, DataLoader, random_split
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from sklearn.model_selection import train_test_split
 
@@ -44,6 +45,7 @@ def train_regression_model(X, y):
     # hyperparameters
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
     num_epochs = 100
     
     # train model
@@ -71,13 +73,19 @@ def train_regression_model(X, y):
                 loss = criterion(outputs, batch_y)
                 val_loss += loss.item()
         
+        # calculate average losses
+        avg_train_loss = train_loss / len(train_loader)
+        avg_val_loss = val_loss / len(test_loader)
+        
+        # update learning rate based on validation loss
+        scheduler.step(avg_val_loss)
+        
         # print progress
-        if (epoch + 1) % 10 == 0: # epochs are zero indexed 
-            avg_train_loss = train_loss / len(train_loader)
-            avg_val_loss = val_loss / len(test_loader)
+        if (epoch + 1) % 10 == 0:  # epochs are zero indexed 
             print(f"Epoch [{epoch+1}/{num_epochs}]")
             print(f"Training Loss: {avg_train_loss:.4f}")
             print(f"Validation Loss: {avg_val_loss:.4f}")
+            print(f"Learning Rate: {optimizer.param_groups[0]['lr']:.6f}")
     
     # evaluate model on test set
     model.eval()
