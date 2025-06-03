@@ -32,7 +32,9 @@ def split_train_test(X, y, train_ratio=0.8):
     return train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test, gender_test
 
 def train_regression_model(X, y, eo=False):
-    # hyperparameters
+    # Z-score normalization
+    X = (X - X.mean()) / X.std()
+    
     train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test, gender_test = split_train_test(X, y)
 
     # create model with appropriate input and output sizes
