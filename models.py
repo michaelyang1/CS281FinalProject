@@ -34,11 +34,11 @@ def split_train_test(X, y, train_ratio=0.8):
 def train_regression_model(X, y, eo=False):
     # hyperparameters
     train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test, gender_test = split_train_test(X, y)
-    
+
     # create model with appropriate input and output sizes
     model = nn.Sequential(
         # hidden layer 1
-        nn.Linear(X_train.shape[0], 32),
+        nn.Linear(X_train.shape[1], 32),
         nn.ReLU(),
         
         # hidden layer 2
@@ -54,7 +54,6 @@ def train_regression_model(X, y, eo=False):
     if eo:
         criterion = nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
     num_epochs = 100
     
     # train model
@@ -100,15 +99,11 @@ def train_regression_model(X, y, eo=False):
         avg_train_loss = train_loss / len(train_loader)
         avg_val_loss = val_loss / len(test_loader)
         
-        # update learning rate based on validation loss
-        scheduler.step(avg_val_loss)
-        
         # print progress
         if (epoch + 1) % 10 == 0:  # epochs are zero indexed 
             print(f"Epoch [{epoch+1}/{num_epochs}]")
             print(f"Training Loss: {avg_train_loss:.4f}")
             print(f"Validation Loss: {avg_val_loss:.4f}")
-            print(f"Learning Rate: {optimizer.param_groups[0]['lr']:.6f}")
     
     # evaluate model on test set
     model.eval()
