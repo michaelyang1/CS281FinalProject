@@ -3,6 +3,7 @@ import opensmile
 import os
 import pandas as pd
 import numpy as np
+
 def extract_audio_features_from_recordings_directory(recordings_directory, save_to_file=False):
     smile = opensmile.Smile(
         feature_set=opensmile.FeatureSet.GeMAPS,
