@@ -29,11 +29,11 @@ def split_train_test(X, y, train_ratio=0.8):
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     
-    return train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test
+    return train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test, gender_test
 
 def train_regression_model(X, y, eo=False):
     # hyperparameters
-    train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test = split_train_test(X, y)
+    train_loader, test_loader, X_train, y_train, gender_train, X_test, y_test, gender_test = split_train_test(X, y)
     
     # create model with appropriate input and output sizes
     model = nn.Sequential(
@@ -51,6 +51,8 @@ def train_regression_model(X, y, eo=False):
     
     # hyperparameters
     criterion = nn.MSELoss()
+    if eo:
+        criterion = nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
     num_epochs = 100
@@ -67,8 +69,8 @@ def train_regression_model(X, y, eo=False):
             lambda_fair = 1.0
             if eo:
                 # fairness penalty: group-wise mean absolute error
-                male_mask = (batch_gender == 0).squeeze()
-                female_mask = (batch_gender == 1).squeeze()
+                female_mask = (batch_gender == 0).squeeze()
+                male_mask = (batch_gender == 1).squeeze()
                 
                 male_error = torch.abs(outputs[male_mask] - batch_y[male_mask])
                 female_error = torch.abs(outputs[female_mask] - batch_y[female_mask])
@@ -112,7 +114,32 @@ def train_regression_model(X, y, eo=False):
     model.eval()
     with torch.no_grad():
         test_predictions = model(X_test)
-        test_loss = nn.MSELoss()(test_predictions, y_test)
-        print(f"Final Test Loss: {test_loss:.4f}")
+        criterion = nn.MSELoss()
+        if eo:
+            criterion = nn.L1Loss()
+        overall_loss = criterion(test_predictions, y_test)
+        
+        gender_test = gender_test.squeeze()
+        female_mask = gender_test == 0
+        male_mask = gender_test == 1
+        
+        # group specific predictions and targets
+        male_preds = test_predictions[male_mask]
+        male_targets = y_test[male_mask]
+
+        female_preds = test_predictions[female_mask]
+        female_targets = y_test[female_mask]
+
+        # group specific losses
+        male_loss = criterion(male_preds, male_targets) if male_preds.numel() > 0 else torch.tensor(0.0)
+        female_loss = criterion(female_preds, female_targets) if female_preds.numel() > 0 else torch.tensor(0.0)
+
+        # Print results
+        print(f"Overall Test Loss (MSE): {overall_loss.item():.4f}")
+        print(f"Male Test Loss (MSE): {male_loss.item():.4f}")
+        print(f"Female Test Loss (MSE): {female_loss.item():.4f}")
     
     return model, test_predictions
+
+def train_classification_model(X, y):
+    pass
