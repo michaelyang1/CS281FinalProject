@@ -23,7 +23,7 @@ def split_train_test(X, y, train_ratio=0.8):
     
     return train_loader, test_loader, X_train, y_train, X_test, y_test
 
-def train_baseline_regression_model(X, y):
+def train_regression_model(X, y):
     # hyperparameters
     train_loader, test_loader, X_train, y_train, X_test, y_test = split_train_test(X, y)
     
