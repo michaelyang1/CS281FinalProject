@@ -58,7 +58,7 @@ def train_regression_model(X, y, eo=False):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
     # early stopping initialization
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
     best_val_loss = float('inf')
     patience = 10
     patience_counter = 0
@@ -130,12 +130,11 @@ def train_regression_model(X, y, eo=False):
             print(f"Validation Loss: {avg_val_loss:.4f}")
     
     # evaluate model on test set
+    overall_loss, male_loss, female_loss = None, None, None
     model.eval()
     with torch.no_grad():
         test_predictions = model(X_test)
-        criterion = nn.MSELoss()
-        if eo:
-            criterion = nn.L1Loss()
+        criterion = nn.L1Loss()
         overall_loss = criterion(test_predictions, y_test)
         
         gender_test = gender_test.squeeze()
@@ -154,11 +153,14 @@ def train_regression_model(X, y, eo=False):
         female_loss = criterion(female_preds, female_targets) if female_preds.numel() > 0 else torch.tensor(0.0)
 
         # Print results
-        print(f"Overall Test Loss (MSE): {overall_loss.item():.4f}")
-        print(f"Male Test Loss (MSE): {male_loss.item():.4f}")
-        print(f"Female Test Loss (MSE): {female_loss.item():.4f}")
+        overall_loss = overall_loss.item()
+        male_loss = male_loss.item()
+        female_loss = female_loss.item()
+        print(f"Overall Test Loss (L1): {overall_loss:.4f}")
+        print(f"Male Test Loss (L1): {male_loss:.4f}")
+        print(f"Female Test Loss (L1): {female_loss:.4f}")
     
-    return model, test_predictions
+    return overall_loss, male_loss, female_loss
 
 def train_classification_model(X, y):
     pass

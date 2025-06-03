@@ -1,7 +1,7 @@
 import scipy.stats as stats
 import numpy as np
 
-def get_top_n_features_most_correlated_with_gender(X, y, n=10):
+def drop_top_n_features_most_correlated_with_gender(X, y, n=0):
     # get correlation between each feature and gender
     correlations = []
     for feature in X.columns:
