@@ -56,6 +56,12 @@ def train_regression_model(X, y, eo=False):
     if eo:
         criterion = nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    # early stopping initialization
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+    best_val_loss = float('inf')
+    patience = 10
+    patience_counter = 0
     num_epochs = 100
     
     # train model
@@ -100,6 +106,22 @@ def train_regression_model(X, y, eo=False):
         # calculate average losses
         avg_train_loss = train_loss / len(train_loader)
         avg_val_loss = val_loss / len(test_loader)
+        
+        # update learning rate based on val loss
+        scheduler.step(avg_val_loss)
+        
+        # perform early stopping check
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            patience_counter = 0
+            best_model_state = model.state_dict() # save best model
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"Early stopping triggered at epoch {epoch+1}")
+                # restore best model
+                model.load_state_dict(best_model_state)
+                break
         
         # print progress
         if (epoch + 1) % 10 == 0:  # epochs are zero indexed 
